@@ -182,12 +182,14 @@ st_crs(all_gpx)
 #Doesn't take too long. Just do it around all of them.
 all_gpx_buff_2=all_gpx %>% 
   filter(study_id==2) %>% 
-  st_buffer(20)
+  st_buffer(200)
 
-#Doesn't take too long. Just do it around all of them.
+all_gpx_buff_2 %>% mapview()
+#Doesn't take too long. Do it this simple way without a function:
 all_gpx_buff=all_gpx %>% 
-  st_buffer(20)
+  st_buffer(200)
 
+all_gpx_buff
 
 # Create a circular buffer to crop the terra images to be smaller-----
 mv_all_gpx
@@ -199,16 +201,16 @@ mv_buff_circular_for_crop =buff_circular_for_crop%>%
   mapview()
 mv_buff_circular_for_crop+mv_all_gpx
 
-# Create a unary union of the buffer for a vis
-all_gpx_union=all_gpx %>% 
-  group_by(study_id) %>% 
-  summarise(n=n())
-
-all_gpx_union %>% mapview(zcol="study_id")
-
-all_gpx_buff_union=all_gpx_buff %>% 
-  group_by(study_id) %>% 
-  summarise(n=n())
-
-all_gpx_buff_union %>% 
-  mapview()
+# # Create a unary union of the buffer for a vis
+# all_gpx_union=all_gpx %>% 
+#   group_by(study_id) %>% 
+#   summarise(n=n())
+# 
+# all_gpx_union %>% mapview(zcol="study_id")
+# 
+# all_gpx_buff_union=all_gpx_buff %>% 
+#   group_by(study_id) %>% 
+#   summarise(n=n())
+# 
+# all_gpx_buff_union %>% 
+#   mapview()

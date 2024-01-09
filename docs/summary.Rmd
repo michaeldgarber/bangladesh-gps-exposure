@@ -89,7 +89,7 @@ mv_all_kmls_buff_centroid+mv_lst_20230602_crop
 
 # Measuring dynamic exposure
 ## Method
-To measure each participant's LST exposure, I drew a 20-m buffer around the GPS tracks. At the level of the line segment (connection between two GPS pings), I then extracted the LST information within those buffers, weighted by the area the buffer area of the line segments overlaps the LST grid cell and by the duration of the segment (usually 1 second).
+To measure each participant's LST exposure, I drew a 200-m buffer around the GPS tracks. At the level of the line segment (connection between two GPS pings), I then extracted the LST information within those buffers, weighted by the area the buffer area of the line segments overlaps the LST grid cell and by the duration of the segment (usually 1 second).
 
 ## Results
 ### LST measures by participant ID
