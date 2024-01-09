@@ -1,0 +1,132 @@
+---
+title: "Measuring dynamic heat exposure in Dhaka"
+author: "Michael D. Garber"
+date: "`r Sys.Date()`"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+---
+
+```{r, eval=T, echo=T,warning=FALSE, message=F}
+library(tidyverse)
+library(sf)
+library(here)
+library(mapview)
+library(raster)
+library(terra)
+library(tidyterra)
+library(knitr)
+```
+
+# Overview
+
+## Objective
+This document presents results of a small analysis measuring heat exposure in Dhaka, Bangladesh based on GPS trajectories of study participants.
+
+## Heat measure
+The heat measure is land-surface temperature as measured by the MODIS satellite. Specifically, I obtained the following data product: MODIS/Aqua Land Surface Temperature/3-Band Emissivity 8-Day L3 Global 1 km SIN Grid.
+
+The spatial resolution is 1 km, and data are available every 8 days.
+
+More can be found about the data product here:
+https://lpdaac.usgs.gov/products/myd21a2v061/
+
+I obtained this data product using the appEEars platform: 
+https://appeears.earthdatacloud.nasa.gov
+
+Given the dates corresponding to the GPS trajectories are between 2023-06-16 and 2023-06-23, I explored LST images over Dhaka for the following days: 2023-05-23,  2023-06-02, 2023-06-10, 2023-06-18, 2023-06-26
+
+The images on 2023-05-23 and 2023-06-02 had the best quality. The images for the other dates had a considerable amount of missing data presumably to cloud cover.
+
+Here is a map of land surface temperature (LST) for the relevant region in Bangladesh for June 2, 2023
+```{r}
+setwd(here("data-processed"))
+lst_20230602_crop = terra::rast("lst_20230602_crop.tif")
+mv_lst_20230602_crop=lst_20230602_crop %>%
+  mapview(layer.name="LST (Kelvin), June 2, 2023")
+```
+
+## GPS trajectories
+Let's obtain some basic information about the GPS trajectories for the study participants
+
+Number of participants
+```{r}
+setwd(here("data-processed"))
+load("all_gpx.RData")
+n_distinct(all_gpx$study_id)
+```
+
+The table below shows information about each participants' trajectories. Each participant used the GPS for about 15-20 minutes.
+```{r}
+all_gpx %>% 
+  st_set_geometry(NULL) %>% 
+  group_by(study_id) %>% 
+  summarise(
+    n_gps_pings=n(),
+    date_time_min=min(date_time),
+    date_time_max=max(date_time),
+    duration_by_id=date_time_max-date_time_min
+  )
+            
+```
+
+The centroid of each GPS track is mapped below. (I do not visualize each individual GPS track to avoid potentially revealing identifying information.)
+```{r}
+setwd(here("data-processed"))
+load("all_kmls_buff_centroid.RData")
+mv_all_kmls_buff_centroid =all_kmls_buff_centroid%>% 
+  mapview(zcol="study_id",layer.name="Centroid of GPS track (ID)")
+mv_all_kmls_buff_centroid
+```
+
+This map overlays those centroids on the LST layer from Modis.
+```{r}
+mv_all_kmls_buff_centroid+mv_lst_20230602_crop
+```
+
+# Measuring dynamic exposure
+## Method
+To measure each participant's LST exposure, I drew a 20-m buffer around the GPS tracks. At the level of the line segment (connection between two GPS pings), I then extracted the LST information within those buffers, weighted by the area the buffer area of the line segments overlaps the LST grid cell and by the duration of the segment (usually 1 second).
+
+## Results
+### LST measures by participant ID
+Here are results by study id. Note that I've converted LST from Kelvin to Celsius.
+
+Variable definitions:
+
+* e_m: weighted mean land-surface temperature, weighted by the area the buffer area of the line segments overlaps the LST grid cell and by the duration of the segment (usually 1 second).
+* e_var: within-individual variance of the weighted mean
+* e_sd: within-individual standard deviation of the weighted mean
+* e_min: minimum LST value experienced over the activity path
+* e_max: maximum LST value experienced over the activity path
+* e_med: median LST value experienced over the activity path
+* n_line: number of line segments comprising these measures
+```{r}
+setwd(here("data-processed"))
+load("traj_summary_by_id.RData")
+traj_summary_by_id %>% 
+  knitr::kable(digits=2)
+```
+
+### Summary of LST measures over all participants
+Variable definitions:
+
+* e_m_of_m: mean of the within-participant weighted means
+* e_sd_of_m: standard deviation of the within-participant means
+* e_m_of_sd: mean of the within-participant standard deviations
+
+```{r}
+traj_summary_by_id %>% 
+  mutate(dummy=1) %>% 
+  group_by(dummy) %>% 
+  summarise(
+    e_m_of_m=mean(e_m,na.rm=T),
+    e_sd_of_m=sd(e_m, na.rm=T),
+    e_m_of_sd=mean(e_sd,na.rm=T)) %>% 
+  ungroup() %>% 
+  dplyr::select(-dummy) %>% 
+  knitr::kable(digits=2) 
+```
+
