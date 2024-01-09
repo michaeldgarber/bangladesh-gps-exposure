@@ -68,7 +68,8 @@ all_gpx %>%
     date_time_min=min(date_time),
     date_time_max=max(date_time),
     duration_by_id=date_time_max-date_time_min
-  )
+  ) %>% 
+  kable(digits=1)
             
 ```
 
